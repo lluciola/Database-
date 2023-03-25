@@ -1,168 +1,58 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
+#include "hashtable.h"
+#include <stdio.h>
 
-
-typedef struct _list {
-        char* key;
-        int counter;
-        struct _list* next;
-
-} List;
-
-List** ht = NULL;
-size_t htsize = 0; // Table Size
-size_t htfill = 0; // Number of non-null buckets
-size_t htelems =0; // Total number of elements
-
-
-size_t hashfunc(const char* key, size_t htsize) {
-        size_t h = 0x73f8e5a39fe37a1b;
-        while(*key) {
-                h = h << 29 | h >> 35;
-                h+= (*key)*65537;
-                key++;
-        }
-        return h % htsize;
+void list_insert(ht_list **l, int val, const char *key) {
+    ht_list *new_element = malloc(sizeof(ht_list));
+    *new_element = (ht_list) {strdup(key), val, *l};
+    *l = new_element;
+    return;
 }
 
-// counter increment
-int ht_inc(const char* key, int* counter);
+ht_list * list_search(ht_list *l, const char *key) {
+    if(l == NULL) {
+        return NULL;
+    }
 
+    if(!strcmp(l->key, key)) {
+        return l;
+    }
 
-// counter decrement
-int ht_dec(const char* key, int* counter);
-
-
-// set counter to a specific value
-int ht_set(const char* key, int counter);
-
-
-// get counter value
-int ht_get(const char* key, int* counter);
-
-// delete counter
-int ht_del(const char* key);
-
-void _ht_set(List** newht, size_t newsize, List* el) {
-        size_t h = hashfunc(el->key, newsize);
-        if (!newht[h] ) htfill++;
-        el->next = newht[h];
-        newht[h] = el;
-}
-void _rehash(List** oldht, List** newht, size_t newsize) {
-        size_t i;
-        htfill = 0;
-        for( i = 0; i< htsize; i++ ) {
-                List* el = ht[i];
-                while (oldht[i]) {
-                        oldht[i] = el->next;
-                        _ht_set(newht, newsize, el);
-                }
-        }
+    return list_search(l->next, key);
 }
 
+void list_remove(ht_list **l) {
+    if(*l == NULL) {
+        return;
+    }
 
-void _ensure_ht_size() {
-        if (htfill*10 > 7*htsize) {
-                // rehash needed
-                List** newht = calloc(sizeof(List*), htsize*2);
-                _rehash(ht, newht, htsize*2);
-                ht = newht;
-                htsize = htsize*2;
-        }
+    list_remove(&(*l)->next);
+
+    if((*l)->key != NULL) {
+        free((*l)->key);
+    }
+
+    free(*l);
+    *l = NULL;
+    return;
 }
 
+void list_print(const ht_list *l) {
+    if(!l) {
+        printf("\n");
+        return;
+    }
 
-int  _ht_get_counter(const char* key, int** counter) {
-        size_t h = hashfunc(key, htsize);
-        List * el;
-        printf("Hash: %lu, el: %p\n", h, ht[h]);
-        for ( el = ht[h]; el; el = el->next ) {
-                if ( !strcmp(key, el->key) ) {
-                        *counter = &el->counter;
-                        return 0;
-                }
-        }
-        printf("Ensuring ht size\n");
-        _ensure_ht_size();
-        if (!el) {
-                printf("No el found, creating...\n");
-                if ( !ht[h] ) htfill++;
-                htelems++;
-                el = malloc(sizeof(List));
-                *el = (List){ strdup(key), 0 , ht[h]};
-                ht[h] = el;
-                *counter = &el->counter;
-        }
-        return 0;
+    printf("[%d, %s], ", l->value, l->key);
+    list_print(l->next);
+    return;
 }
-
-
-int ht_inc(const char* key, int *counter) {
-        int *cntr;
-        if (!_ht_get_counter(key, &cntr))
-                *counter = (*cntr)++;
-        return 0;
-}
-
-
-int ht_dec(const char* key, int *counter ) {
-        int *cntr;
-        if ( !_ht_get_counter(key, &cntr))
-                *counter = (*cntr)--;
-        return 0;
-}
-
-int ht_set(const char* key, int value) {
-        int *cntr;
-        if ( !_ht_get_counter(key, &cntr))
-                *cntr = value;
-        return 0;
-}
-
-int ht_get(const char* key, int *value) {
-        int *cntr;
-        if ( !_ht_get_counter(key, &cntr))
-                *value = *cntr;
-        return 0;
-}
-
-List* _list_del(List* el, const char* key) {
-        if ( ! el ) return NULL;
-        if ( !strcmp(key, el->key) ) {
-                List* next = el->next;
-                free(el);
-                return next;
-                }
-        
-        free(ht);
-        ht = NULL;
-        htsize = 0;
-        htelems = 0;
-        htfill = 0;
-}
-
-
-int _load_db(const char* filename) {
-        FILE* f;
-        char key[1024];
-        int counter;
-        if ( f = fopen(filename, "r") ) {
-                while (fscanf(f, "%s %d", key, &counter) == 2)
-                        ht_set(key, counter);
-                fclose(f);
-                return 0;
-        }
-        return -1;
-}
-
-int _dump_db(const char* filename) {
+/*Нужно доработать
+int _dump_db(const char* filename, ht* table) {
         FILE* f;
         if ( f = fopen(filename, "w+") ){
                 size_t i;
-                for ( i = 0 ; i < htsize; i++ ) {
-                        List* el;
+                for ( i = 0 ; i < ht.buckets_count; i++ ) {
+                        ht_ist* el;
                         for( el = ht[i]; el; el= el->next ) {
                                 fprintf(f, "%s %d\n", el->key, el->counter);
                         }
@@ -172,6 +62,108 @@ int _dump_db(const char* filename) {
         }
         return -1;
 }
-                                                                                                                                                                                         133,1         40%
+*/
+
+int _load_db(const char* filename, ht* table) {
+        FILE* f;
+        char key[100];
+        int counter;
+        if ( f = fopen(filename, "r") ) {
+                while (fscanf(f, "%s %d", key, &counter) == 2)
+                        ht_insert(table, counter, key);
+                fclose(f);
+                return 0;
+        }
+        return 1;
+}
+
+
+ht * ht_create(size_t start_size,
+               size_t (*hash_func) (size_t size, const char *key)) {
+    ht *ret = malloc(sizeof(ht));
+    *ret = (ht) {calloc(start_size, sizeof(ht_list *)), start_size, 0, hash_func};
+    return ret;
+}
+void __ht_ensure_size(ht *table) {
+    if(table->buckets_count * 7 < table->buckets_filled * 10) {
+        __ht_rehash(table);
+    }
+
+    return;
+}
+
+void __ht_rehash(ht *table) {
+    ht *new_table = ht_create(table->buckets_count * 2, table->hash_function);
+
+    for(int i = 0; i < table->buckets_count; ++i) {
+        ht_list *elem = table->buckets[i];
+        while(elem) {
+            ht_insert(new_table, elem->value, elem->key);
+            free(elem->key);
+            elem->key = NULL;
+            ht_list *next_elem = elem->next;
+            elem = next_elem;
+        }
+        list_remove(&table->buckets[i]);
+    }
+
+    free(table->buckets);
+    table->buckets_count *= 2;
+    table->buckets_filled = new_table->buckets_filled;
+    table->buckets = new_table->buckets;
+    free(new_table);
+
+    return;
+}
+
+void ht_insert(ht *table, int val, const char *key) {
+    ht_list *search_result = ht_search(table, key);
+
+    if(search_result) {
+        search_result->value = val;
+        return;
+    }
+
+    int bucket_index = table->hash_function(table->buckets_count, key);
+
+    if(table->buckets[bucket_index] == NULL) {
+        ++table->buckets_filled;
+    }
+
+    list_insert(&(table->buckets[bucket_index]), val, key);
+
+    __ht_ensure_size(table);
+    return;
+}
+
+ht_list * ht_search(const ht *table, const char* key) {
+    int bucket_index = table->hash_function(table->buckets_count, key);
+    return list_search(table->buckets[bucket_index], key);
+}
+
+void ht_remove(ht **table) {
+    ht *_table = *table;
+
+    for(size_t i = 0; i < _table->buckets_count; ++i) {
+        list_remove(&_table->buckets[i]);
+    }
+
+    free(_table->buckets);
+    free(_table);
+    *table = NULL;
+    return;
+}
+void ht_delete(ht* table, const char* key){
+        ht_list* list = ht_search(table, key);
+        list_remove(&list);
+}
+void ht_print(const ht *table) {
+    for(size_t i = 0; i < table->buckets_count; ++i) {
+                printf("[%lu]: ", i);
+                list_print(table->buckets[i]);
+    }
+    return;
+}
+
 
 
