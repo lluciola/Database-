@@ -46,23 +46,24 @@ void list_print(const ht_list *l) {
     list_print(l->next);
     return;
 }
-/*Нужно доработать
+
 int _dump_db(const char* filename, ht* table) {
         FILE* f;
         if ( f = fopen(filename, "w+") ){
-                size_t i;
-                for ( i = 0 ; i < ht.buckets_count; i++ ) {
-                        ht_ist* el;
-                        for( el = ht[i]; el; el= el->next ) {
-                                fprintf(f, "%s %d\n", el->key, el->counter);
+                int i;
+                for ( i = 0 ; i < table->buckets_count; i++ ) {
+                        ht_list* el = table->buckets[i];
+                        while(el != NULL) {
+                                fprintf(f, "%s %d\n", el->key, el->value);
+				el = el->next;
                         }
                 }
                 fclose(f);
                 return 0;
         }
-        return -1;
+        return 1;
 }
-*/
+
 
 int _load_db(const char* filename, ht* table) {
         FILE* f;
@@ -165,5 +166,8 @@ void ht_print(const ht *table) {
     return;
 }
 
+void manual(){
+        printf("'Q'- quit;\n'SRCH' - search for key;\n'DEL' - delete an element;\n'ADD' - add an element;\n'LOAD' -load elements from a file;\n'PRNT' - print the database;\n'DMP' - dump all changes;\n");
+}
 
 

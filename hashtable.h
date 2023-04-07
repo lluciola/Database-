@@ -30,6 +30,8 @@ void ht_delete(ht *table, const char* key);
 
 int _dump_db(const char* filename, ht* table);
 
+//int ht_add_from_file(const char* filename, ht *table);
+
 int _load_db(const char* filename, ht* table);
 
 ht *ht_create(size_t start_size,
@@ -47,4 +49,4 @@ void ht_remove(ht **table);
 
 void ht_print(const ht *table);
 
-
+void manual();

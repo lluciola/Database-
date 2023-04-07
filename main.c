@@ -10,7 +10,9 @@
 #define SRCH 2
 #define ADD 4
 #define DEL 3
-#define PRNT 5
+#define PRNT 6
+#define LOAD 5
+#define DMP 7
 
 size_t hashfunc(size_t htsize, const char* key) {
         size_t h = 0x73f8e5a39fe37a1b;
@@ -23,9 +25,6 @@ size_t hashfunc(size_t htsize, const char* key) {
         return h % htsize;
 }
 
-void manual(){
-        printf("'Q'- quit;\n'SRCH' - search for key;\n'DEL' - delete an element;\n'ADD' - add an element;\n'ADDF' - add elements from a file;\n'PRNT' - print the database;\n");
-}
 int main() {
         ht *table = ht_create(1000, hashfunc);
         if(_load_db("database.txt", table))
@@ -62,6 +61,14 @@ int main() {
                                 ht_insert(table, value, key);
                                 printf("ADDED successfully\n");
                                 break;
+			case LOAD:
+				char file_name[500];
+				scanf("%s", file_name);
+				if(_load_db(file_name, table))
+					printf("File not found\nPlease, make sure that the file is in the right folder and the name is correct.\n");
+				else
+					printf("LOADED successfully\n");
+				
                         case DEL:
                                 scanf("%s", key);
                                 ht_delete(table, key);
@@ -69,12 +76,18 @@ int main() {
                         case PRNT:
                                 ht_print(table);
                                 break;
+			case DMP:
+				if (! _dump_db("database.txt", table))
+					printf("DUMPED successfully\n");
+				else
+					printf("ERROR while dumping");
+				break;
+
                         default:
                                 printf("Unknown command\n");
                                 break;
                 }
         }
-        //fclose(db);
         //fclose(jr);
 }
 
