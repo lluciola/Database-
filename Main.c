@@ -1,15 +1,5 @@
 #include "HashTable.h"
-
-//============================================================================================================
-
-#define Help 'H'
-#define Q    'Q'
-#define SRCH 'S'
-#define ADD  'A'
-#define DEL  'D'
-#define PRNT 'P'
-#define LOAD 'L'
-#define DMP  'M'
+#include "Addresses.h"
 
 //============================================================================================================
 
@@ -29,88 +19,100 @@ size_t hashfunc(size_t htsize, const char* key)
 
 //============================================================================================================
 
-int main() 
+int db_interpret(char* buf, char** resp_buf) 
 {
+      flag = 0;
+
       ht* table = ht_create(1000, hashfunc);
+      
+      char* resp = malloc(RESPONSE_SIZE);
 
-      _load_db("database.txt", table);
+      _load_db("database.txt", table, resp);
 
-      FILE *jr = fopen("journal.txt", "r+");
+      //FILE *jr = fopen("journal.txt", "r+");
 
-      printf("Hello! Please, enter a command or type 'Help':\n");
+      //printf("Hello! Please, enter a command or type 'H' for help:\n");
 
-      char cmd;
-      int flag = 1;
-
-      while(flag)
+      //read_chars(n);
+      char cmd = buf[0];
+      buf += 1;
+      switch(cmd)
       {
-            char n = scanf("%c", &cmd);
-            read_chars(n);
-            char key[100];
-            switch(cmd)
-            {
-                  case 'H':
-                        manual();
-                        break;
+            case 'H':
+                  manual(resp);
+                  break;
 
-                  case 'Q':
-                        printf("Bye!\n");
-                        flag = 0;
-                        break;
-                  case 'S':
-                        scanf("%s", key);
-                        ht_list* res = malloc(sizeof(ht_list));
-                        res = ht_search(table, key);
-                        if(res == NULL)
-                        {
-                              printf("Nothing found\n");
-                        }
-                        else
-                              list_print(res);
-                        break;
+            case 'Q':
+                  strcpy(resp, "Bye!\n");
+                  break;
+            case 'S':
+                  char* key = malloc(sizeof(buf));
+                  strcpy(key, buf);
+                  ht_list* res = malloc(sizeof(ht_list));
+                  res = ht_search(table, key);
+                  if(res == NULL)
+                  {
+                        strcpy(resp, "Nothing found\n");
+                  }
+                  else
+                        list_print(res, resp); 
+                  break;
 
-                  case 'A':
-                        int value;
-                        scanf("%s %d", key, &value);
-                        ht_insert(table, value, key);
-                        printf("Added successfully\n");
-                        break;
+            case 'A':
+                  int value;
+                  char* key = malloc(sizeof(buf));
+                  int i = 0;
+                  while(&buf != ' ' ){
+                        key[i] = &buf;
+                        buf++;
+                        i++;
+                  }
+                  buf++;
+                  value = atoi(buf);
+                  ht_insert(table, value, key);
+                  strcpy(resp, "Added successfully\n");
+                  break;
+            /*
+            case 'L':
+                  char file_name[500];
+                  scanf("%s", file_name);
+                  _load_db(file_name, table);
+                  break;
+              */    
+            case 'D':
+                  char* key = malloc(sizeof(buf));
+                  strcpy(key, buf);
+                  ht_delete(table, key);
+                  break;
 
-                  case 'L':
-                        char file_name[500];
-                        scanf("%s", file_name);
-                        _load_db(file_name, table);
-                        break;
-                        
-                  case 'D':
-                        scanf("%s", key);
-                        ht_delete(table, key);
-                        break;
+            case 'P':
+                  ht_print(table, resp);
+                  break;
+                  
+            case 'M':
+                  _dump_db("database.txt", table);
+                  break;
 
-                  case 'P':
-                        ht_print(table);
-                        break;
-                        
-                  case 'M':
-                        _dump_db("database.txt", table);
-                        break;
+            case 'I':
+                  char* key = malloc(sizeof(buf));
+                  strcpy(key, buf);
+                  if(incr_el(table, key))
+                        strcpy(resp, "Element not found");
+                  break;
+            case 'E':
+                  char* key = malloc(sizeof(buf));
+                  strcpy(key, buf);
+                  if(decr_el(table, key))
+                        strcpy(resp, "Element not found");
+                  break;
+            case ' ': case '\n': case '\0':
+                  break;
 
-                  case 'I':
-                        scanf("%s", key);
-                        if(incr_el(table, key))
-                              printf("Element not found");
-                        break;
-                  case 'E':
-                        scanf("%s", key);
-                        if(decr_el(table, key))
-                              printf("Element not found");
-                        break;
-
-
-                  default:
-                        printf("Unknown command\n");
-                        break;
-            }
-        }
-        fclose(jr);
+            default:
+                  strcpy( resp, "Unknown command\n");
+                  break;
+      }
+      resp_buf = *resp;
+        //fclose(jr);
+      return 0;
 }

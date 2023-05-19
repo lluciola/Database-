@@ -1,10 +1,12 @@
 #include "HashTable.h"
+#include "Adresses.h"
 
 //============================================================================================================
+
 void list_insert(ht_list **l, int val, const char *key) 
 {
-    ht_list* new_element = (ht_list*)malloc(sizeof(ht_list));
-    new_element = (ht_list*)(strdup(key), val, *l);
+    ht_list *new_element = malloc(sizeof(ht_list));
+    *new_element = (ht_list) {strdup(key), val, *l};
     *l = new_element;
     return;
 }
@@ -49,28 +51,28 @@ void list_remove(ht_list **l)
 
 //============================================================================================================
 
-void list_print(const ht_list *l) 
+void list_print(const ht_list *l, char* resp) 
 {
     if(!l) {
-        printf("\n");
+        strcpy(resp, "\n");
         return;
     }
-
-    printf("[%d, %s], ", l->value, l->key);
-    list_print(l->next);
+    strcpy(resp, l->value);
+    strcpy(resp, l->key);
+    list_print(l->next, resp);
     return;
 }
 
 //============================================================================================================
 
-int _dump_db(const char* filename, ht* table) 
+int _dump_db(const char* filename, ht* table, char* resp) 
 {
       FILE* f;
 
       if (fopen(filename, "r") == NULL)
       {
             fclose(f);
-            printf("Error code: 1. Problem with file opening!");
+            strcpy(resp, "Error code: 1. Problem with file opening!");
       }
 
       else
@@ -81,19 +83,20 @@ int _dump_db(const char* filename, ht* table)
 
                   while(el != NULL) 
                   {
-                        fprintf(f, "%s %d\n", el->key, el->value);
+                        strcpy(resp, el->key);
+                        strcpy(resp, el->value);
                         el = el->next;
                   }
             }
             fclose(f);
-            printf("DUMPED successfully\n");
+            strcpy(resp, "DUMPED successfully\n");
             return 0;
         }
 }
 
 //============================================================================================================
 
-int _load_db(const char* filename, ht* table) 
+int _load_db(const char* filename, ht* table, char* resp) 
 {
         FILE* f;
         char key[100];
@@ -102,7 +105,7 @@ int _load_db(const char* filename, ht* table)
         if (fopen(filename, "r") == NULL)
         {
             fclose(f);
-            printf("Error code: 1. Problem with file opening!");
+            strcpy(resp, "Error code: 1. Problem with file opening!");
         }
 
         else 
@@ -110,18 +113,19 @@ int _load_db(const char* filename, ht* table)
             while (fscanf(f, "%s %d", key, &counter) == 2)
                   ht_insert(table, counter, key);
             fclose(f);
-            printf("LOADED successfully\n");
+            strcpy(resp, "LOADED successfully\n");
         }
 }
 
 //============================================================================================================
 
-ht* ht_create(size_t start_size, size_t (*hash_func) (size_t size, const char *key)) 
-{
-    ht* ret = (ht*)malloc(sizeof(ht));
-    ret = (ht*)(calloc(start_size, sizeof(ht_list *)), start_size, 0, hash_func);
+ht * ht_create(size_t start_size,
+               size_t (*hash_func) (size_t size, const char *key)) {
+    ht *ret = malloc(sizeof(ht));
+    *ret = (ht) {calloc(start_size, sizeof(ht_list *)), start_size, 0, hash_func};
     return ret;
 }
+
 
 //============================================================================================================
 
@@ -224,26 +228,27 @@ void ht_delete(ht* table, const char* key)
 
 //============================================================================================================
 
-void ht_print(const ht *table) 
+void ht_print(const ht *table, char* resp) 
 {
     for(size_t i = 0; i < table->buckets_count; ++i) 
     {
-                printf("[%lu]: ", i);
-                list_print(table->buckets[i]);
+        strcpy(resp, i);
+        list_print(table->buckets[i], resp);
     }
     return;
 }
 
 //============================================================================================================
-
+/*
 int read_chars(char ch)
-{
-      if(ch != 'H' || ch != 'Q' || ch != 'S'|| ch != 'A'||ch != 'D'||ch != 'P'||ch != 'L'||ch != 'M')
+{   
+
+      if()
       {
             printf("Error code: 3. Incorrect character input.\n");
       }
 }
-
+*/
 //============================================================================================================
 
 int incr_el(ht* table, const char* key){
@@ -266,7 +271,7 @@ int decr_el(ht* table, const char* key){
 
 //==============================================================================================================
 
-void manual()
+void manual(char* resp)
 {
-        printf("'Q'- quit;\n'S' - search for key;\n'D' - delete an element;\n'A' - add an element;\n'L' -load elements from a file;\n'P' - print the database;\n'M' - dump all changes;\n'I' - increase the value;\n'E' - decrease the value\n");
+        strcpy(resp, "'Q'- quit;\n'S' - search for key;\n'D' - delete an element;\n'A' - add an element;\n'L' -load elements from a file;\n'P' - print the database;\n'M' - dump all changes;\n'I' - increase the value;\n'E' - decrease the value\n");
 }
