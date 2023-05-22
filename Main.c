@@ -1,5 +1,9 @@
 #include "HashTable.h"
-#include "Addresses.h"
+#include "Adresses.h"
+#include<stdio.h>
+
+ht* table = NULL;
+
 
 //============================================================================================================
 
@@ -16,103 +20,75 @@ size_t hashfunc(size_t htsize, const char* key)
         return h % htsize;
 }
 
-
+void db_init() {
+	printf("INitializing database...\n");
+	table = ht_create(1000, hashfunc);
+	printf("Loading database from file...\n");
+	_load_db("database.txt", table);
+	printf("Done\n");
+}
 //============================================================================================================
 
-int db_interpret(char* buf, char** resp_buf) 
-{
-      flag = 0;
 
-      ht* table = ht_create(1000, hashfunc);
-      
-      char* resp = malloc(RESPONSE_SIZE);
 
-      _load_db("database.txt", table, resp);
+int db_interpret(char* buf, size_t len, char** resp_buf) {
+	char key[100];
 
-      //FILE *jr = fopen("journal.txt", "r+");
+	int value;
 
-      //printf("Hello! Please, enter a command or type 'H' for help:\n");
+	char cmd = buf[0];
+	buf += 1;
+	printf("Command %c, rest: '%s'\n", cmd, buf);
+	switch(cmd) {
+		case 'H':
+			return manual(resp_buf);
+		case 'Q':
+			return asprintf(resp_buf, "Bye!\n");
+		case 'S':
+			if ( sscanf(buf, "%s", key) == 1) {
+				printf("Reading key '%s'\n", key);
+				ht_list* res = ht_search(table, key);
+				if(res == NULL)
+					return asprintf(resp_buf, "Empty\n");
+				else
+					return asprintf(resp_buf, "%s %d\n", res->key, res->value);
+			}
+			return asprintf(resp_buf, "ERROR: wrong key\n");
+		case 'A': 
+			if (sscanf(buf, "%s%d", key, &value) == 2 ) {
+				printf("Inserting %s with %d\n", key, value);
+				ht_insert(table, value, key);
+				return asprintf(resp_buf, "Added successfully\n");
+			}
+			return asprintf(resp_buf, "Cannot insert\n");
 
-      //read_chars(n);
-      char cmd = buf[0];
-      buf += 1;
-      switch(cmd)
-      {
-            case 'H':
-                  manual(resp);
-                  break;
 
-            case 'Q':
-                  strcpy(resp, "Bye!\n");
-                  break;
-            case 'S':
-                  char* key = malloc(sizeof(buf));
-                  strcpy(key, buf);
-                  ht_list* res = malloc(sizeof(ht_list));
-                  res = ht_search(table, key);
-                  if(res == NULL)
-                  {
-                        strcpy(resp, "Nothing found\n");
-                  }
-                  else
-                        list_print(res, resp); 
-                  break;
+		case 'D':
+			if ( sscanf(buf, "%s", key) != 1) return asprintf(resp_buf, "ERROR: wrong key\n");
+			if (ht_delete(table, key))
+				return asprintf(resp_buf, "OK\n");
+			return asprintf(resp_buf, "ERROR\n");
 
-            case 'A':
-                  int value;
-                  char* key = malloc(sizeof(buf));
-                  int i = 0;
-                  while(&buf != ' ' ){
-                        key[i] = &buf;
-                        buf++;
-                        i++;
-                  }
-                  buf++;
-                  value = atoi(buf);
-                  ht_insert(table, value, key);
-                  strcpy(resp, "Added successfully\n");
-                  break;
-            /*
-            case 'L':
-                  char file_name[500];
-                  scanf("%s", file_name);
-                  _load_db(file_name, table);
-                  break;
-              */    
-            case 'D':
-                  char* key = malloc(sizeof(buf));
-                  strcpy(key, buf);
-                  ht_delete(table, key);
-                  break;
+		case 'M':
+			_dump_db("database.txt", table);
+			return asprintf(resp_buf, "OK\n");
 
-            case 'P':
-                  ht_print(table, resp);
-                  break;
-                  
-            case 'M':
-                  _dump_db("database.txt", table);
-                  break;
+		case 'I':
+			if ( sscanf(buf, "%s", key) == 1 ) {
+				if(incr_el(table, key))
+					return asprintf(resp_buf, "Element not found\n");
+				return asprintf(resp_buf, "OK\n");
+			}
 
-            case 'I':
-                  char* key = malloc(sizeof(buf));
-                  strcpy(key, buf);
-                  if(incr_el(table, key))
-                        strcpy(resp, "Element not found");
-                  break;
-            case 'E':
-                  char* key = malloc(sizeof(buf));
-                  strcpy(key, buf);
-                  if(decr_el(table, key))
-                        strcpy(resp, "Element not found");
-                  break;
-            case ' ': case '\n': case '\0':
-                  break;
-
-            default:
-                  strcpy( resp, "Unknown command\n");
-                  break;
-      }
-      resp_buf = *resp;
-        //fclose(jr);
-      return 0;
+			return asprintf(resp_buf, "ERROR: wrong key\n");
+		case 'E':
+			if ( sscanf(buf, "%s", key) != 1) return asprintf(resp_buf, "ERROR: wrong key\n");
+			if(decr_el(table, key))
+				return asprintf(resp_buf, "Element not found");
+			return asprintf(resp_buf, "OK\n");
+		case ' ': case '\n': case '\0':
+			break;
+		default:
+			return asprintf(resp_buf, "Unknown command\n");
+	}
 }

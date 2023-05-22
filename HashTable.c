@@ -51,72 +51,56 @@ void list_remove(ht_list **l)
 
 //============================================================================================================
 
-void list_print(const ht_list *l, char* resp) 
+int list_print(const ht_list *l, char** resp) 
 {
-    if(!l) {
-        strcpy(resp, "\n");
-        return;
-    }
-    strcpy(resp, l->value);
-    strcpy(resp, l->key);
-    list_print(l->next, resp);
-    return;
+	char* buf;
+	int rel;
+    if(!l) 
+        return 0;
+   	rel = asprintf(&buf, "%s%s %d\n", *resp, l->key, l->value);
+	free(*resp);
+	*resp = buf;
+    return rel+list_print(l->next, resp);
 }
 
 //============================================================================================================
 
-int _dump_db(const char* filename, ht* table, char* resp) 
-{
-      FILE* f;
+int _dump_db(const char* filename, ht* table) {
+	FILE* f;
 
-      if (fopen(filename, "r") == NULL)
-      {
-            fclose(f);
-            strcpy(resp, "Error code: 1. Problem with file opening!");
-      }
+	if ((f = fopen(filename, "w")) == NULL) {
+		printf("Cannot open database file for dumping %s\n", filename);
+		return -1;
+	}
+	for (size_t i = 0 ; i < table->buckets_count; i++ )
+	{
+		for (ht_list* el = table->buckets[i]; el; el=el->next) 
+			fprintf(f, "%s %d\n", el->key, el->value);
 
-      else
-      {
-            for (size_t i = 0 ; i < table->buckets_count; i++ )
-            {
-                  ht_list* el = table->buckets[i];
-
-                  while(el != NULL) 
-                  {
-                        strcpy(resp, el->key);
-                        strcpy(resp, el->value);
-                        el = el->next;
-                  }
-            }
-            fclose(f);
-            strcpy(resp, "DUMPED successfully\n");
-            return 0;
-        }
+	}
+	fclose(f);
+	printf("DUmped successfully\n");
+	return 0;
 }
 
 //============================================================================================================
 
-int _load_db(const char* filename, ht* table, char* resp) 
+int _load_db(const char* filename, ht* table) 
 {
         FILE* f;
         char key[100];
         int counter;
 
-        if (fopen(filename, "r") == NULL)
-        {
-            fclose(f);
-            strcpy(resp, "Error code: 1. Problem with file opening!");
+        if ((f = fopen(filename, "r")) == NULL) {
+			printf("Cannot open database file %s\n", filename);
+			return -1;
         }
 
-        else 
-        {
-            while (fscanf(f, "%s %d", key, &counter) == 2)
-                  ht_insert(table, counter, key);
-            fclose(f);
-            strcpy(resp, "LOADED successfully\n");
-        }
+		while (fscanf(f, "%s %d", key, &counter) == 2)
+			  ht_insert(table, counter, key);
+		fclose(f);
+		return 0;
 }
-
 //============================================================================================================
 
 ht * ht_create(size_t start_size,
@@ -220,22 +204,28 @@ void ht_remove(ht **table)
 
 //============================================================================================================
 
-void ht_delete(ht* table, const char* key)
+int ht_delete(ht* table, const char* key)
 {
         ht_list* list = ht_search(table, key);
+		if ( !list) return -1;
         list_remove(&list);
+		return 0;
 }
 
 //============================================================================================================
 
-void ht_print(const ht *table, char* resp) 
+int ht_print(const ht *table, char** resp) 
 {
+	int sz = 0;
     for(size_t i = 0; i < table->buckets_count; ++i) 
     {
-        strcpy(resp, i);
-        list_print(table->buckets[i], resp);
+        char* buf;
+		sz += asprintf(&buf, "%s%lu ", *resp, i);
+		free(*resp);
+        sz += list_print(table->buckets[i], &buf);
+		*resp = buf;
     }
-    return;
+    return sz;
 }
 
 //============================================================================================================
@@ -271,7 +261,7 @@ int decr_el(ht* table, const char* key){
 
 //==============================================================================================================
 
-void manual(char* resp)
+int manual(char** resp)
 {
-        strcpy(resp, "'Q'- quit;\n'S' - search for key;\n'D' - delete an element;\n'A' - add an element;\n'L' -load elements from a file;\n'P' - print the database;\n'M' - dump all changes;\n'I' - increase the value;\n'E' - decrease the value\n");
+   asprintf(resp, "'Q'- quit;\n'S' - search for key;\n'D' - delete an element;\n'A' - add an element;\n'L' -load elements from a file;\n'P' - print the database;\n'M' - dump all changes;\n'I' - increase the value;\n'E' - decrease the value\n");
 }
